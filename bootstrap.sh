@@ -32,10 +32,6 @@ fi
 
 [ -f "$HOME/.zshrc.local" ] || cp "$DOTFILES/.zshrc.local.example" "$HOME/.zshrc.local"
 
-if command -v rustup >/dev/null && ! command -v rustc >/dev/null; then
-  rustup default stable >/dev/null 2>&1 || true
-fi
-
 if command -v go >/dev/null; then
   GO_TOOLS=(
     golang.org/x/tools/gopls@latest

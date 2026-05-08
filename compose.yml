@@ -4,8 +4,8 @@ services:
       context: .
       args:
         USER: ${USER:-sergeik}
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
     image: myenv:latest
     container_name: devenv
     hostname: devenv

@@ -57,18 +57,6 @@ RUN arch=$(dpkg --print-architecture) \
         "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${arch}.deb" \
  && dpkg -i /tmp/delta.deb && rm /tmp/delta.deb
 
-# --- helix (upstream tarball; PPA is amd64-only, tarball is multi-arch) ---
-ARG HELIX_VERSION=25.07.1
-RUN arch=$(uname -m) \
- && curl -fsSL -o /tmp/helix.tar.xz \
-        "https://github.com/helix-editor/helix/releases/download/${HELIX_VERSION}/helix-${HELIX_VERSION}-${arch}-linux.tar.xz" \
- && tar -xJf /tmp/helix.tar.xz -C /tmp \
- && mv /tmp/helix-${HELIX_VERSION}-${arch}-linux/hx /usr/local/bin/hx \
- && mkdir -p /usr/local/share/helix \
- && mv /tmp/helix-${HELIX_VERSION}-${arch}-linux/runtime /usr/local/share/helix/runtime \
- && rm -rf /tmp/helix*
-ENV HELIX_RUNTIME=/usr/local/share/helix/runtime
-
 # --- zellij ---
 ARG ZELLIJ_VERSION=v0.44.2
 RUN case "$(uname -m)" in x86_64) a=x86_64;; aarch64) a=aarch64;; esac \
@@ -117,6 +105,19 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path \
  && chmod -R a+rwX /usr/local/rustup /usr/local/cargo
+
+# --- helix (built from source; binary is `hx`, symlink `helix` -> `hx` so both names work) ---
+ARG HELIX_VERSION=25.07.1
+RUN git clone --depth 1 --branch ${HELIX_VERSION} https://github.com/helix-editor/helix /tmp/helix \
+ && cd /tmp/helix \
+ && cargo install --path helix-term --locked --root /usr/local \
+ && mkdir -p /usr/local/share/helix \
+ && cp -r /tmp/helix/runtime /usr/local/share/helix/runtime \
+ && ln -s /usr/local/bin/hx /usr/local/bin/helix \
+ && HELIX_RUNTIME=/usr/local/share/helix/runtime hx -g fetch \
+ && HELIX_RUNTIME=/usr/local/share/helix/runtime hx -g build \
+ && rm -rf /tmp/helix /usr/local/cargo/registry
+ENV HELIX_RUNTIME=/usr/local/share/helix/runtime
 
 # --- xterm-ghostty terminfo (entry only; not in noble's ncurses-term yet) ---
 RUN curl -fsSL -o /tmp/ghostty.terminfo \

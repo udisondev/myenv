@@ -51,13 +51,23 @@ function y() {
 	rm -f -- "$tmp"
 }
 
-# Plugins from /usr/share/zsh/plugins
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+# zsh plugins — Arch puts them under /usr/share/zsh/plugins/<name>/<name>.zsh,
+# Debian/Ubuntu under /usr/share/<name>/<name>.zsh.
+for plugin in zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search; do
+  for path in \
+    /usr/share/zsh/plugins/$plugin/$plugin.zsh \
+    /usr/share/$plugin/$plugin.zsh; do
+    [[ -f $path ]] && source $path && break
+  done
+done
 
-# pkgfile "command not found" handler
+# command-not-found handler — Arch (pkgfile) and Debian/Ubuntu have different files
 [[ -f /usr/share/doc/pkgfile/command-not-found.zsh ]] && source /usr/share/doc/pkgfile/command-not-found.zsh
+[[ -f /etc/zsh_command_not_found ]] && source /etc/zsh_command_not_found
+
+# Drop SSH_AUTH_SOCK if it doesn't point at a real socket (compose may mount
+# /dev/null when the host has no agent forwarding).
+[[ -S "$SSH_AUTH_SOCK" ]] || unset SSH_AUTH_SOCK
 
 # Cargo binaries
 path=($HOME/.cargo/bin $path)
