@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO="$HOME/dev-env"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES="$REPO/dotfiles"
 
 link() {
@@ -27,6 +27,10 @@ link "$DOTFILES/.config/glow/glow.yml"        "$HOME/.config/glow/glow.yml"
 
 [ -f "$HOME/.zshrc.local" ] || cp "$DOTFILES/.zshrc.local.example" "$HOME/.zshrc.local"
 
+if [ ! -d /usr/share/oh-my-zsh ] && [ -d "$REPO/oh-my-zsh" ]; then
+  link "$REPO/oh-my-zsh" "$HOME/.oh-my-zsh"
+fi
+
 if command -v rustup >/dev/null && ! command -v rustc >/dev/null; then
   rustup default stable
 fi
@@ -47,6 +51,7 @@ if command -v go >/dev/null; then
   done
 fi
 
-if [ "$(getent passwd "$USER" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
-  sudo chsh -s /usr/bin/zsh "$USER" 2>/dev/null || true
+user="${USER:-$(id -un)}"
+if [ "$(getent passwd "$user" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
+  sudo chsh -s /usr/bin/zsh "$user" 2>/dev/null || true
 fi

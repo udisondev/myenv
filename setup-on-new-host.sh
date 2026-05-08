@@ -25,6 +25,11 @@ if ! command -v podman >/dev/null && ! command -v docker >/dev/null; then
   exit 1
 fi
 
+if [ -f "$REPO_DIR/.gitmodules" ] && [ ! -e "$REPO_DIR/oh-my-zsh/oh-my-zsh.sh" ]; then
+  echo "==> Initialising git submodules (oh-my-zsh)"
+  git -C "$REPO_DIR" submodule update --init --recursive
+fi
+
 echo "==> Host-side setup (ghostty config, ssh config skeleton)"
 "$REPO_DIR/host-setup.sh"
 

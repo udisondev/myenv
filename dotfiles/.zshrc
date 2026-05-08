@@ -1,8 +1,13 @@
-# oh-my-zsh
-export ZSH="/usr/share/oh-my-zsh"
+# oh-my-zsh — Arch package puts it in /usr/share/oh-my-zsh,
+# the official installer puts it in ~/.oh-my-zsh.
+if [[ -d /usr/share/oh-my-zsh ]]; then
+  export ZSH="/usr/share/oh-my-zsh"
+else
+  export ZSH="$HOME/.oh-my-zsh"
+fi
 ZSH_THEME="robbyrussell"
 plugins=(git fzf extract)
-source $ZSH/oh-my-zsh.sh
+[[ -f "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
 # History
 export EDITOR="helix"
@@ -23,6 +28,19 @@ alias hx=helix
 
 # zoxide — smarter cd
 eval "$(zoxide init zsh)"
+
+# zellij — attach to most recent live session, or create a new one.
+# Mimics `tmux attach` UX (zellij itself requires an explicit session name).
+function zj() {
+	local active
+	active=$(zellij list-sessions --no-formatting 2>/dev/null \
+	         | awk '!/EXITED/ {print $1}' | head -1)
+	if [ -n "$active" ]; then
+		zellij attach "$active"
+	else
+		zellij
+	fi
+}
 
 # yazi — wrapper that cds to the directory you exited yazi in
 function y() {
