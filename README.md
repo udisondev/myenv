@@ -6,7 +6,7 @@
 
 ```
 .
-├── Dockerfile              # Arch-base + все pacman-пакеты
+├── Dockerfile              # ubuntu:24.04 (multi-arch) + apt + upstream tarballs
 ├── compose.yml             # запуск контейнера + volumes
 ├── entrypoint.sh           # вызывает bootstrap.sh при старте
 ├── bootstrap.sh            # симлинки + go install (идемпотентный)
