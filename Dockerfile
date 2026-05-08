@@ -11,6 +11,9 @@ RUN pacman -Sy --noconfirm archlinux-keyring && \
         mosh man-db less which pkgfile ghostty-terminfo && \
     pacman -Scc --noconfirm
 
+RUN npm install -g @anthropic-ai/claude-code && \
+    npm cache clean --force
+
 ARG USER=sergeik
 ARG UID=1000
 ARG GID=1000
