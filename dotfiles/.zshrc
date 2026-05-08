@@ -6,7 +6,7 @@ else
   export ZSH="$HOME/.oh-my-zsh"
 fi
 ZSH_THEME="robbyrussell"
-plugins=(git fzf extract)
+plugins=(git fzf extract history-substring-search)
 [[ -f "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
 # History
@@ -14,12 +14,18 @@ export EDITOR="helix"
 export HISTCONTROL=ignoreboth
 export HISTORY_IGNORE="(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)"
 
+# Go
+export GOPATH="$HOME/go"
+export GOBIN="$GOPATH/bin"
+
 # PATH
 typeset -U path
 path=(
-  $HOME/go/bin
+  $GOBIN
   $HOME/bin
   $HOME/.npm-global/bin
+  /usr/local/go/bin
+  /usr/local/cargo/bin
   $path
 )
 
@@ -53,11 +59,11 @@ function y() {
 
 # zsh plugins — Arch puts them under /usr/share/zsh/plugins/<name>/<name>.zsh,
 # Debian/Ubuntu under /usr/share/<name>/<name>.zsh.
-for plugin in zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search; do
-  for path in \
+for plugin in zsh-syntax-highlighting zsh-autosuggestions; do
+  for plugin_path in \
     /usr/share/zsh/plugins/$plugin/$plugin.zsh \
     /usr/share/$plugin/$plugin.zsh; do
-    [[ -f $path ]] && source $path && break
+    [[ -f $plugin_path ]] && source $plugin_path && break
   done
 done
 

@@ -4,12 +4,17 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
+# noble's minimized base image strips /usr/share/{doc,man,locale} via dpkg
+# excludes — this hides things like fzf's key-bindings.zsh and breaks `man`.
+# Drop the exclude so packages install with their normal payload.
+RUN rm -f /etc/dpkg/dpkg.cfg.d/excludes
+
 # --- Base build/runtime utilities + universe-apt tools that ship as-is ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential curl git openssh-client sudo ca-certificates locales \
+        build-essential curl git openssh-client openssh-server sudo ca-certificates locales \
         less man-db gnupg wget xz-utils tar ncurses-bin pkg-config unzip \
         fzf ripgrep fd-find bat zoxide tig jq btop mosh \
-        zsh zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search \
+        zsh zsh-syntax-highlighting zsh-autosuggestions \
  && locale-gen en_US.UTF-8 \
  && ln -s /usr/bin/fdfind /usr/local/bin/fd \
  && ln -s /usr/bin/batcat /usr/local/bin/bat \
@@ -25,12 +30,12 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
-# --- glow (charmbracelet apt repo, multi-arch) ---
-RUN curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg \
- && echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
-        > /etc/apt/sources.list.d/charm.list \
- && apt-get update && apt-get install -y --no-install-recommends glow \
- && rm -rf /var/lib/apt/lists/*
+# --- glow (.deb from upstream releases) ---
+ARG GLOW_VERSION=2.1.1
+RUN arch=$(dpkg --print-architecture) \
+ && curl -fsSL -o /tmp/glow.deb \
+        "https://github.com/charmbracelet/glow/releases/download/v${GLOW_VERSION}/glow_${GLOW_VERSION}_${arch}.deb" \
+ && dpkg -i /tmp/glow.deb && rm /tmp/glow.deb
 
 # --- eza (gierens.de apt repo, multi-arch) ---
 RUN curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
@@ -107,30 +112,41 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
  && rustup component add rust-analyzer rustfmt clippy \
  && chmod -R a+rwX /usr/local/rustup /usr/local/cargo
 
-# --- helix (built from source; binary is `hx`, symlink `helix` -> `hx` so both names work) ---
+# Make /usr/local/{go,cargo}/bin available to login shells (ssh/sudo/etc).
+# Dockerfile's `ENV PATH=...` only reaches `docker exec`; sshd uses PAM and
+# reads /etc/profile, which sources /etc/profile.d/*.sh.
+RUN printf 'export PATH="/usr/local/cargo/bin:/usr/local/go/bin:$PATH"\n' \
+        > /etc/profile.d/dev-paths.sh \
+ && chmod 644 /etc/profile.d/dev-paths.sh
+
+# --- helix (prebuilt tarball; binary is `hx`, symlink `helix` -> `hx` so both names work) ---
 ARG HELIX_VERSION=25.07.1
-RUN git clone --depth 1 --branch ${HELIX_VERSION} https://github.com/helix-editor/helix /tmp/helix \
- && cd /tmp/helix \
- && cargo install --path helix-term --locked --root /usr/local \
- && mkdir -p /usr/local/share/helix \
- && cp -r /tmp/helix/runtime /usr/local/share/helix/runtime \
+RUN case "$(uname -m)" in x86_64) a=x86_64;; aarch64) a=aarch64;; esac \
+ && curl -fsSL -o /tmp/helix.tar.xz \
+        "https://github.com/helix-editor/helix/releases/download/${HELIX_VERSION}/helix-${HELIX_VERSION}-${a}-linux.tar.xz" \
+ && mkdir -p /tmp/helix-extract /usr/local/share/helix \
+ && tar -xJf /tmp/helix.tar.xz -C /tmp/helix-extract \
+ && mv /tmp/helix-extract/*/hx /usr/local/bin/hx \
+ && mv /tmp/helix-extract/*/runtime /usr/local/share/helix/runtime \
  && ln -s /usr/local/bin/hx /usr/local/bin/helix \
- && HELIX_RUNTIME=/usr/local/share/helix/runtime hx -g fetch \
- && HELIX_RUNTIME=/usr/local/share/helix/runtime hx -g build \
- && rm -rf /tmp/helix /usr/local/cargo/registry
+ && rm -rf /tmp/helix*
 ENV HELIX_RUNTIME=/usr/local/share/helix/runtime
 
-# --- xterm-ghostty terminfo (entry only; not in noble's ncurses-term yet) ---
-RUN curl -fsSL -o /tmp/ghostty.terminfo \
-        https://raw.githubusercontent.com/ghostty-org/ghostty/main/src/terminfo/ghostty.terminfo \
- && tic -x -o /etc/terminfo /tmp/ghostty.terminfo \
- && rm /tmp/ghostty.terminfo
+# --- sshd: pubkey-only, no root, no password; host keys baked at build time ---
+RUN sed -i \
+        -e 's/^#*\s*PasswordAuthentication.*/PasswordAuthentication no/' \
+        -e 's/^#*\s*PermitRootLogin.*/PermitRootLogin no/' \
+        -e 's/^#*\s*PubkeyAuthentication.*/PubkeyAuthentication yes/' \
+        /etc/ssh/sshd_config \
+ && ssh-keygen -A \
+ && mkdir -p /run/sshd
 
 # --- user setup ---
 ARG USER=sergeik
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g ${GID} ${USER} \
+RUN userdel -r ubuntu 2>/dev/null || true \
+ && groupadd -g ${GID} ${USER} \
  && useradd -m -u ${UID} -g ${GID} -s /usr/bin/zsh -G sudo ${USER} \
  && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER}
 
