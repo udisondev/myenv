@@ -104,6 +104,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     PATH=/usr/local/cargo/bin:$PATH
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path \
+ && rustup component add rust-analyzer rustfmt clippy \
  && chmod -R a+rwX /usr/local/rustup /usr/local/cargo
 
 # --- helix (built from source; binary is `hx`, symlink `helix` -> `hx` so both names work) ---
