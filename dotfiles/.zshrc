@@ -18,6 +18,9 @@ export HISTORY_IGNORE="(\&|[bf]g|c|clear|history|exit|q|pwd|* --help)"
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
 
+# Helix runtime (Dockerfile's ENV doesn't reach ssh sessions via PAM)
+export HELIX_RUNTIME="/usr/local/share/helix/runtime"
+
 # PATH
 typeset -U path
 path=(

@@ -112,10 +112,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
  && rustup component add rust-analyzer rustfmt clippy \
  && chmod -R a+rwX /usr/local/rustup /usr/local/cargo
 
-# Make /usr/local/{go,cargo}/bin available to login shells (ssh/sudo/etc).
-# Dockerfile's `ENV PATH=...` only reaches `docker exec`; sshd uses PAM and
-# reads /etc/profile, which sources /etc/profile.d/*.sh.
-RUN printf 'export PATH="/usr/local/cargo/bin:/usr/local/go/bin:$PATH"\n' \
+# Make /usr/local/{go,cargo}/bin and HELIX_RUNTIME available to login shells
+# (ssh/sudo/etc). Dockerfile's `ENV` only reaches `docker exec`; sshd uses PAM
+# and reads /etc/profile, which sources /etc/profile.d/*.sh.
+RUN printf '%s\n' \
+        'export PATH="/usr/local/cargo/bin:/usr/local/go/bin:$PATH"' \
+        'export HELIX_RUNTIME="/usr/local/share/helix/runtime"' \
         > /etc/profile.d/dev-paths.sh \
  && chmod 644 /etc/profile.d/dev-paths.sh
 
