@@ -132,6 +132,12 @@ RUN case "$(uname -m)" in x86_64) a=x86_64;; aarch64) a=aarch64;; esac \
  && rm -rf /tmp/helix*
 ENV HELIX_RUNTIME=/usr/local/share/helix/runtime
 
+# --- xterm-ghostty terminfo (committed source; upstream removed the static
+#     file in favor of a Zig generator, so we ship our own snapshot) ---
+COPY terminfo/xterm-ghostty.src /tmp/xterm-ghostty.src
+RUN tic -x -o /etc/terminfo /tmp/xterm-ghostty.src \
+ && rm /tmp/xterm-ghostty.src
+
 # --- sshd: pubkey-only, no root, no password; host keys baked at build time ---
 RUN sed -i \
         -e 's/^#*\s*PasswordAuthentication.*/PasswordAuthentication no/' \
