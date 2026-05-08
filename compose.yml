@@ -1,0 +1,25 @@
+services:
+  devenv:
+    build:
+      context: .
+      args:
+        USER: ${USER:-sergeik}
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: myenv:latest
+    container_name: devenv
+    hostname: devenv
+    volumes:
+      - .:/home/${USER:-sergeik}/myenv:ro
+      - ~/Projects:/home/${USER:-sergeik}/Projects
+      - devenv-home:/home/${USER:-sergeik}
+      - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent
+      USER: ${USER:-sergeik}
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  devenv-home:

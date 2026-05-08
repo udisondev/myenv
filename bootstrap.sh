@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Idempotent bootstrap for the distrobox dev environment.
-# Runs inside the container as the user (via distrobox init_hooks).
+# Idempotent first-boot setup, executed by entrypoint.sh on container start.
+# Symlinks dotfiles, seeds ~/.zshrc.local, installs Go-based tools.
 
 set -euo pipefail
 
@@ -14,25 +14,26 @@ link() {
     return
   fi
   if [ -e "$dst" ] && [ ! -L "$dst" ]; then
-    mv "$dst" "$dst.pre-devenv.$(date +%s)"
+    mv "$dst" "$dst.pre-myenv.$(date +%s)"
   fi
   ln -sfn "$src" "$dst"
 }
 
-link "$DOTFILES/.zshrc"                   "$HOME/.zshrc"
+link "$DOTFILES/.zshrc"                       "$HOME/.zshrc"
 link "$DOTFILES/.config/helix/config.toml"    "$HOME/.config/helix/config.toml"
 link "$DOTFILES/.config/helix/languages.toml" "$HOME/.config/helix/languages.toml"
 link "$DOTFILES/.config/zellij/config.kdl"    "$HOME/.config/zellij/config.kdl"
 link "$DOTFILES/.config/glow/glow.yml"        "$HOME/.config/glow/glow.yml"
+link "$DOTFILES/.ssh/config.example"          "$HOME/.ssh/config.example"
 
-[ -f "$HOME/.zshrc.local" ] || cp "$DOTFILES/.zshrc.local.example" "$HOME/.zshrc.local"
-
-if [ ! -d /usr/share/oh-my-zsh ] && [ -d "$REPO/oh-my-zsh" ]; then
+if [ -d "$REPO/oh-my-zsh" ]; then
   link "$REPO/oh-my-zsh" "$HOME/.oh-my-zsh"
 fi
 
+[ -f "$HOME/.zshrc.local" ] || cp "$DOTFILES/.zshrc.local.example" "$HOME/.zshrc.local"
+
 if command -v rustup >/dev/null && ! command -v rustc >/dev/null; then
-  rustup default stable
+  rustup default stable >/dev/null 2>&1 || true
 fi
 
 if command -v go >/dev/null; then
@@ -49,9 +50,4 @@ if command -v go >/dev/null; then
     name="${t##*/}"; name="${name%@*}"
     command -v "$name" >/dev/null || go install "$t"
   done
-fi
-
-user="${USER:-$(id -un)}"
-if [ "$(getent passwd "$user" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
-  sudo chsh -s /usr/bin/zsh "$user" 2>/dev/null || true
 fi
