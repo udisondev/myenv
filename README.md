@@ -7,9 +7,10 @@
 ```
 .
 ├── Dockerfile              # ubuntu:24.04 (multi-arch) + apt + upstream tarballs
-├── compose.yml             # запуск контейнера + volumes
-├── entrypoint.sh           # вызывает bootstrap.sh при старте
+├── compose.yml             # запуск контейнера + volumes + sshd-порт
+├── entrypoint.sh           # поднимает sshd, вызывает bootstrap.sh
 ├── bootstrap.sh            # симлинки + go install (идемпотентный)
+├── terminfo/               # снапшот xterm-ghostty terminfo
 ├── oh-my-zsh/              # git submodule
 └── dotfiles/
     ├── .zshrc
@@ -40,21 +41,34 @@
 git clone --recurse-submodules git@github.com:udisondev/myenv.git
 cd myenv
 
-# .env — чтобы UID/GID контейнера совпали с хостом (на маке UID обычно 501)
+# .env — чтобы UID/GID контейнера совпали с хостом (на маке UID обычно 501).
+# Если pubkey не id_ed25519.pub, доппишите SSH_PUBKEY=...
 printf "HOST_UID=%s\nHOST_GID=%s\nUSER=%s\n" "$(id -u)" "$(id -g)" "$(id -un)" > .env
 
 docker compose up -d --build
 ```
 
-Первая сборка — 10–15 минут (helix компилируется из исходников, плюс go-инструменты на первом старте). После — секунды на старт.
+Первая сборка — 5–7 минут (всё ставится из бинарных релизов, без cargo-сборки). Следующие — секунды.
 
-### 3. Войти в среду
+### 3. Прописать SSH-хост и войти
 
-```sh
-docker exec -it devenv zsh
+В `~/.ssh/config` на хосте:
+
+```
+Host devenv
+  HostName 127.0.0.1
+  Port 2222
+  User <your-user>     # то же, что в .env
+  ForwardAgent yes
 ```
 
-При первом входе ты в zsh с oh-my-zsh, готовыми helix/zellij/yazi и всеми твоими биндингами. Конфиги — симлинки на `dotfiles/` из репо: правишь файл на хосте, в контейнере применяется сразу.
+Дальше:
+
+```sh
+ssh devenv
+```
+
+Внутри — zsh с oh-my-zsh, helix/zellij/yazi и твоими биндингами. Конфиги — симлинки на `dotfiles/` из репо: правишь файл на хосте, в контейнере применяется сразу. Через ssh с Ghostty terminfo `xterm-ghostty` уже запечён в образе, поэтому никакого двоения букв и сломанного backspace.
 
 ### 4. Локальные секреты
 
@@ -66,21 +80,21 @@ hx ~/.zshrc.local   # внутри контейнера
 
 ## Каждодневное использование
 
-Удобный alias на хост-стороне:
-
 ```sh
-echo 'alias dev="docker exec -it devenv zsh"' >> ~/.zshrc
-```
-
-Дальше:
-
-```sh
-dev               # попасть в среду
+ssh devenv        # попасть в среду (через хост-овский ssh-agent)
 zj                # zellij: подключиться к последней живой сессии или создать новую
 exit              # выйти из контейнера, хост-shell не тронут
 ```
 
 Контейнер `devenv` сам перезапускается при ребуте хоста (`restart: unless-stopped`).
+
+После каждого `--build` host keys внутри образа перегенерируются; ssh ругнётся на mismatch — почистить запись:
+
+```sh
+ssh-keygen -R '[127.0.0.1]:2222'
+```
+
+(или один раз добавить в `Host devenv` блок `StrictHostKeyChecking accept-new` — для loopback'а это безопасно).
 
 ## Обновление
 
@@ -98,6 +112,11 @@ docker exec devenv bash /home/$USER/myenv/bootstrap.sh   # пере-примен
 - `~/Projects` → `/home/$USER/Projects` (rw): рабочие проекты, шарятся с хостом.
 - `devenv-home` (named volume) → `/home/$USER`: где живёт `~/.config`, `~/.zshrc.local`, `~/go/bin`. Сохраняется между перезапусками контейнера.
 - `$SSH_AUTH_SOCK` → `/ssh-agent`: проброс ssh-агента хоста, `git push` работает прямо из контейнера без копирования ключей.
+- `$SSH_PUBKEY` (по умолчанию `~/.ssh/id_ed25519.pub`) → `/etc/ssh/host_authorized_key` (ro): pubkey хоста, entrypoint кладёт его в `~/.ssh/authorized_keys` для входа по `ssh devenv`.
+
+## Порты
+
+- `127.0.0.1:2222` → `22` (sshd внутри). Слушает только loopback, наружу не торчит.
 
 ## Что не входит в репо
 
