@@ -1,0 +1,4 @@
+font-family = MesloLGS Nerd Font Mono
+font-size = 18
+
+shell-integration-features = ssh-env,ssh-terminfo

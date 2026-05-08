@@ -1,0 +1,17 @@
+# Copy to ~/.zshrc.local on each machine and fill in real values.
+# This file is sourced from ~/.zshrc and is intentionally NOT in the repo.
+
+# GitLab credentials (rambler)
+# export GITLAB_NETRC_TOKEN="glpat-..."
+# export GITLAB_USERNAME="..."
+
+# GOPROXY: corporate artifactory if reachable, else public proxy.
+# if (( $+commands[timeout] )) && timeout 1 bash -c '</dev/tcp/art.rambler.ru/443' 2>/dev/null; then
+#   export GOPROXY="https://art.rambler.ru/mail-local-goproxy|https://art.rambler.ru/mail-goproxy|https://proxy.golang.org,direct"
+# else
+#   export GOPROXY="https://proxy.golang.org,direct"
+# fi
+# export GONOSUMDB="gitlab.rambler.ru/*"
+
+# Espressif Rust (ESP32) — only on machines with the toolchain
+# [[ -f $HOME/export-esp.sh ]] && source $HOME/export-esp.sh

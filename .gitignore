@@ -1,0 +1,12 @@
+# Per-machine secrets and overrides — never commit.
+*.local
+dotfiles/.zshrc.local
+dotfiles/.ssh/config
+dotfiles/.ssh/id_*
+dotfiles/.ssh/known_hosts*
+
+# Editor / OS junk
+.DS_Store
+*.swp
+*.swo
+*~
