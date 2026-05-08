@@ -24,7 +24,6 @@ link "$DOTFILES/.config/helix/config.toml"    "$HOME/.config/helix/config.toml"
 link "$DOTFILES/.config/helix/languages.toml" "$HOME/.config/helix/languages.toml"
 link "$DOTFILES/.config/zellij/config.kdl"    "$HOME/.config/zellij/config.kdl"
 link "$DOTFILES/.config/glow/glow.yml"        "$HOME/.config/glow/glow.yml"
-link "$DOTFILES/.config/ghostty/config"       "$HOME/.config/ghostty/config"
 
 [ -f "$HOME/.zshrc.local" ] || cp "$DOTFILES/.zshrc.local.example" "$HOME/.zshrc.local"
 

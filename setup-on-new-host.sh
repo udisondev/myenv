@@ -25,9 +25,14 @@ if ! command -v podman >/dev/null && ! command -v docker >/dev/null; then
   exit 1
 fi
 
+echo "==> Host-side setup (ghostty config, ssh config skeleton)"
+"$REPO_DIR/host-setup.sh"
+
+echo ""
+echo "==> Distrobox container"
 if distrobox list 2>/dev/null | grep -q "^[^ ]* *| *$CONTAINER_NAME "; then
-  echo "Container '$CONTAINER_NAME' already exists. Re-running bootstrap..."
-  distrobox enter "$CONTAINER_NAME" -- bash "$REPO_DIR/bootstrap.sh"
+  echo "Container '$CONTAINER_NAME' already exists. Re-running bootstrap inside it..."
+  distrobox enter "$CONTAINER_NAME" -- bash "/home/$USER/dev-env/bootstrap.sh"
 else
   echo "Creating distrobox container '$CONTAINER_NAME'..."
   distrobox assemble create --file "$REPO_DIR/distrobox.ini"
